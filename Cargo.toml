@@ -1,0 +1,12 @@
+[package]
+name          = "evolution"
+description   = "2D genetic algorithm simulation written in Rust"
+version       = "0.0.1"
+authors       = [ "Austin Baugh <abaugh@pdx.edu>" ]
+edition       = "2018"
+repository    = "https://github.com/austinsheep/evolution"
+documentation = "https://web.pdx.edu/~abaugh/doc/evolution"
+readme        = "README.md"
+license       = "MIT"
+
+[dependencies]
