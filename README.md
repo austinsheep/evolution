@@ -1,7 +1,7 @@
 # Evolution
 Copyright (c) 2019 Austin Baugh
 
-`Evolution` is a 2D simulation based on Daniel Shiffman's coding challenge of implementing [Evolutionary Steering Behaviors](https://youtu.be/flxOkx0yLrY).
+`Evolution` will be a 2D simulation based on Daniel Shiffman's coding challenge of implementing [Evolutionary Steering Behaviors](https://youtu.be/flxOkx0yLrY).
 
 ### Similarities to Daniel Shiffman's simulation
 - `Evolution` consists of vehicles who improve their "foraging" behaviors through the use of a genetic algorithm.  By "foraging" it is meant that vehicles will be inclined to consume food and avoid poison.
