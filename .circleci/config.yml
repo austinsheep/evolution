@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: rust:1.36.0-slim
+      - image: rust:1.36.0
     steps:
       - checkout
       - run:
