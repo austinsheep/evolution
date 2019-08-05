@@ -15,12 +15,12 @@ Copyright (c) 2019 Austin Baugh
 ## [Documentation](https://web.pdx.edu/~abaugh/doc/evolution)
 
 ## Features
-- [x] Add seek behavior to vehicles (for the cursor's location)
+- [x] Add seek behavior to vehicles
 - [ ] Add a declining health attribute to vehicles
 - [ ] Add food entities
-    - [ ] Have vehciles seek food
+    - [ ] Have vehicles seek food
 - [ ] Add poison entities
-    - [ ] Have vehciles avoid poison
+    - [ ] Have vehicles avoid poison
 - [ ] Incorperate genetic algorithm
 - [ ] Implement predators
     - [ ] Consider removing poison

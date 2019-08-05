@@ -4,15 +4,20 @@
 use ggez::{
     graphics,
     graphics::DrawParam,
-    nalgebra::{Point2, Vector2},
+    nalgebra::{distance, Point2, Vector2},
     Context, GameResult,
 };
 
+use super::food::Food;
+
 /// The ratio of the dimensions of the vehicle's appearance (width, height)
 const DIMENSION_RATIO: (u8, u8) = (2, 1);
+const EATING_RADIUS: f32 = 5.0;
 
 /// An entity that constists of attributes that determine its behavior.
 pub struct Vehicle {
+    dna: [f32; 2],
+    health: f32,
     /// The size of the vehicle, which ultimately be multiplied by the dimension ration to
     /// determine its actual dimensions
     pub size: f32,
@@ -40,6 +45,7 @@ impl Vehicle {
         max_steering_force: f32,
         pos: Point2<f32>,
         angle: f32,
+        dna: [f32; 2],
     ) -> Self {
         Self {
             size,
@@ -49,11 +55,47 @@ impl Vehicle {
             vel: Vector2::new(0.0, 0.0),
             angle,
             pos,
+            dna,
+            health: 1.0,
         }
     }
 
+    pub fn behaviors(&mut self, food: &mut Vec<Food>, poison: &mut Vec<Food>) {
+        let mut food_steer = self.eat(food);
+        let mut poison_steer = self.eat(poison);
+
+        food_steer   *= self.dna[0];
+        poison_steer *= self.dna[1];
+
+        // Apply the steering forces
+        self.acc += food_steer + poison_steer;
+    }
+
+    pub fn eat(&mut self, food: &mut Vec<Food>) -> Vector2<f32> {
+        let mut record = 0.0;
+        let mut closest = None;
+        for (i, item) in food.iter().enumerate() {
+            let distance = distance(&item.pos, &self.pos);
+            if closest.is_none() || distance < record {
+                record = distance;
+                closest = Some(i);
+            }
+        }
+
+        if let Some(closest_index) = closest {
+            let closest_item = &food[closest_index];
+
+            if record <= closest_item.size + EATING_RADIUS {
+                food.remove(closest_index);
+            } else {
+                return self.seek(&closest_item.pos)
+            }
+        }
+        Vector2::new(0.0, 0.0)
+    }
+
     /// Applies a force that will point the vehicle towards its target
-    pub fn seek(&mut self, target: &Point2<f32>) {
+    pub fn seek(&mut self, target: &Point2<f32>) -> Vector2<f32> {
         // Get the desired velocity vector
         let mut desired = target - self.pos;
         // Set the magnitude of the desired vector to the maximum speed
@@ -65,21 +107,23 @@ impl Vehicle {
             steering_force = steering_force.normalize() * self.max_steering_force;
         }
 
-        // Apply the steering force
-        self.acc += steering_force;
+        steering_force
     }
 
     /// Update the physics of the vehicle
     pub fn update(&mut self) {
-        // Limit the velocity magnitude to the maximum speed
-        if self.vel.magnitude() > self.max_speed {
-            self.vel = self.vel.normalize() * self.max_speed;
+        if self.health > 0.0 {
+            // Limit the velocity magnitude to the maximum speed
+            if self.vel.magnitude() > self.max_speed {
+                self.vel = self.vel.normalize() * self.max_speed;
+            }
+            self.vel += self.acc;
+            // Point the vehicle towards its velocity vector
+            self.angle = self.vel.y.atan2(self.vel.x);
+            self.pos += self.vel;
+            self.acc *= 0.0;
+            self.health -= 0.01;
         }
-        self.vel += self.acc;
-        // Point the vehicle towards its velocity vector
-        self.angle = self.vel.y.atan2(self.vel.x);
-        self.pos += self.vel;
-        self.acc *= 0.0;
     }
 
     /// Draw the triangle that represents the vehicle
@@ -93,11 +137,11 @@ impl Vehicle {
             ctx,
             graphics::DrawMode::fill(),
             &[
-                Point2::new(dimensions.0 * 0.5, 0.0),
-                Point2::new(-dimensions.0 * 0.5, dimensions.1 * 0.5),
-                Point2::new(-dimensions.0 * 0.5, -dimensions.1 * 0.5),
+                Point2::new(dimensions.0, 0.0),
+                Point2::new(-dimensions.0, dimensions.1),
+                Point2::new(-dimensions.0, -dimensions.1),
             ],
-            [0.0, 1.0, 0.0, 1.0].into(),
+            [0.0, 1.0, 0.0, self.health].into(),
         )?;
 
         let mut parameters = DrawParam::new();
