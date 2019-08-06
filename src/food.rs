@@ -5,6 +5,13 @@ use ggez::{
     nalgebra::Point2,
     Context, GameResult,
 };
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize)]
+pub struct FoodConfig {
+    pub quantity: u32,
+    pub size_range: (f32, f32),
+}
 
 pub struct Food {
     pub size: f32,

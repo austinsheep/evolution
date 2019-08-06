@@ -1,3 +1,4 @@
 justfile
+assets/frames.ase
 target/
 **/*.rs.bk

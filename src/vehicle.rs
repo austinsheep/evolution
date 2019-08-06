@@ -3,24 +3,34 @@
 
 use ggez::{
     graphics,
-    graphics::DrawParam,
+    graphics::{DrawParam, Rect},
     nalgebra::{distance, Point2, Vector2},
     Context, GameResult,
 };
+use serde::Deserialize;
 
 use super::food::Food;
 
-/// The ratio of the dimensions of the vehicle's appearance (width, height)
-const DIMENSION_RATIO: (u8, u8) = (2, 1);
-const EATING_RADIUS: f32 = 5.0;
+const ANIMATION_FRAMES: [u8; 4] = [ 0, 1, 2, 1 ];
+
+#[derive(Debug, Deserialize)]
+pub struct VehicleConfig {
+    pub quantity: u32,
+    pub size_range: (f32, f32),
+    pub max_speed_range: (f32, f32),
+    pub max_steering_force_range: (f32, f32),
+    pub total_food_chain_links: u8,
+}
 
 /// An entity that constists of attributes that determine its behavior.
 pub struct Vehicle {
+    animation_index: usize,
+    frame_index: u8,
     dna: [f32; 2],
     health: f32,
-    /// The size of the vehicle, which ultimately be multiplied by the dimension ration to
+    /// The scale of the vehicle, which ultimately be multiplied by the dimension ration to
     /// determine its actual dimensions
-    pub size: f32,
+    pub scale: f32,
     /// The maximum velocity magnitude that the vehicle is able to reach
     pub max_speed: f32,
     /// The maximum steering force that is able to be applied to the vehicle
@@ -40,7 +50,7 @@ pub struct Vehicle {
 impl Vehicle {
     /// Creates a new vehicle based on the provided optional attributes
     pub fn new(
-        size: f32,
+        scale: f32,
         max_speed: f32,
         max_steering_force: f32,
         pos: Point2<f32>,
@@ -48,7 +58,9 @@ impl Vehicle {
         dna: [f32; 2],
     ) -> Self {
         Self {
-            size,
+            animation_index: 0,
+            frame_index: 0,
+            scale,
             max_speed,
             max_steering_force,
             acc: Vector2::new(0.0, 0.0),
@@ -85,7 +97,7 @@ impl Vehicle {
         if let Some(closest_index) = closest {
             let closest_item = &food[closest_index];
 
-            if record <= closest_item.size + EATING_RADIUS {
+            if record <= closest_item.size + self.scale * 12.0 {
                 food.remove(closest_index);
             } else {
                 return self.seek(&closest_item.pos)
@@ -122,33 +134,35 @@ impl Vehicle {
             self.angle = self.vel.y.atan2(self.vel.x);
             self.pos += self.vel;
             self.acc *= 0.0;
-            self.health -= 0.01;
+            self.health -= 0.001;
         }
     }
 
     /// Draw the triangle that represents the vehicle
-    pub fn draw(&self, ctx: &mut Context) -> GameResult {
-        let dimensions = (
-            DIMENSION_RATIO.0 as f32 * self.size,
-            DIMENSION_RATIO.1 as f32 * self.size,
-        );
+    pub fn draw(&mut self, ctx: &mut Context, image: &graphics::Image, max_speed: f32) -> GameResult {
+        let parameters = DrawParam {
+            src: Rect {
+                x: 0.0,
+                y: ANIMATION_FRAMES[self.animation_index] as f32 / 3.0,
+                w: 1.0,
+                h: 1.0 / 3.0
+            },
+            dest:     self.pos.into(),
+            rotation: self.angle,
+            scale:    Vector2::new(self.scale, self.scale).into(),
+            offset:   Point2::new(0.5, 0.5).into(),
+            color:    [0.0, 1.0, 0.0, self.health].into(),
+        };
 
-        let triangle = graphics::Mesh::new_polygon(
-            ctx,
-            graphics::DrawMode::fill(),
-            &[
-                Point2::new(dimensions.0, 0.0),
-                Point2::new(-dimensions.0, dimensions.1),
-                Point2::new(-dimensions.0, -dimensions.1),
-            ],
-            [0.0, 1.0, 0.0, self.health].into(),
-        )?;
+        if self.frame_index as f32 >= 2.0 * max_speed / self.vel.magnitude() {
+            self.frame_index = 0;
+            self.animation_index += 1;
+            self.animation_index %= 4;
+        } else {
+            self.frame_index += 1;
+        }
 
-        let mut parameters = DrawParam::new();
-        parameters = parameters.dest(self.pos);
-        parameters = parameters.rotation(self.angle);
-
-        graphics::draw(ctx, &triangle, parameters)?;
+        graphics::draw(ctx, image, parameters)?;
         Ok(())
     }
 }
