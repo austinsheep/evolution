@@ -1,10 +1,6 @@
 //! A module for creating circles in a `ggez` window
 
-use ggez::{
-    graphics,
-    nalgebra::Point2,
-    Context, GameResult,
-};
+use ggez::{graphics, nalgebra::Point2, Context, GameResult};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]

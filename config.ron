@@ -1,15 +1,16 @@
 Config( // A template configuration file for `evolution`
-    fullscreen: true,
+    fullscreen: false,
     window_size: (640.0, 480.0),
     desired_fps: 60,
-    show_fps: false,
+    show_fps: true,
 
-    vehicle: VehicleConfig(
+    fish: FishConfig(
         quantity: 20,
         size_range: (1.0, 2.0),
         max_speed_range: (1.0, 2.0),
         max_steering_force_range: (0.01, 0.1),
         total_food_chain_links: 3,  // Excludes food
+        frames_per_animation_frame: 3.0,
     ),
 
     food: FoodConfig(

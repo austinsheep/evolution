@@ -1,28 +1,16 @@
 //! Evolution will be a 2D genetic algorithm simulation.
 //!
-//! A `Vehicle` will first spawn at a random location in the window.
-//! The `Vehicle` will then go on to `seek` the cursor's location.
+//! A `Fish` will first spawn at a random location in the window.
+//! The `Fish` will then go on to `seek` the cursor's location.
 
-use std::{
-    fs::File,
-    path::PathBuf,
-};
-use ggez::{
-    conf,
-    event,
-    graphics,
-    nalgebra::Point2,
-    Context,
-    ContextBuilder,
-    GameResult,
-    timer,
-};
+use ggez::{conf, event, graphics, nalgebra::Point2, timer, Context, ContextBuilder, GameResult};
 use rand::Rng;
 use ron::de::from_reader;
 use serde::Deserialize;
+use std::{fs::File, path::PathBuf};
 
-use evolution::food::{FoodConfig, Food};
-use evolution::vehicle::{VehicleConfig, Vehicle};
+use evolution::food::{Food, FoodConfig};
+use evolution::fish::{Fish, FishConfig};
 
 #[derive(Debug, Deserialize)]
 struct Config {
@@ -30,64 +18,58 @@ struct Config {
     window_size: (f32, f32),
     desired_fps: u32,
     show_fps: bool,
-    vehicle: VehicleConfig,
+    fish: FishConfig,
     food: FoodConfig,
     poison: FoodConfig,
 }
 
-/// The application state that keeps track of the current state of vehicles and food
+/// The application state that keeps track of the current state of fishes and food
 struct State {
     config: Config,
-    /// A collection of vehicles
-    vehicles: Vec<Vehicle>,
+    /// A collection of fishes
+    fishes: Vec<Fish>,
     /// A collection of food
     food: Vec<Food>,
     /// A collection of poison
     poison: Vec<Food>,
-    vehicle_image: graphics::Image,
+    fish_image: graphics::Image,
 }
 
 impl State {
     /// Creates a new instance of the application state
     fn new(ctx: &mut Context, config: Config) -> GameResult<State> {
-        // Random number generator is used for the location of the vehicle and its angle
+        // Random number generator is used for the location of the fish and its angle
         let mut rng = rand::thread_rng();
 
-        let mut vehicles = Vec::new();
+        let mut fishes = Vec::new();
 
-        // The non-default attributes of the vehicle that are to be specified before-hand
-        for _ in 1..config.vehicle.quantity {
-            let size = rng.gen_range(
-                config.vehicle.size_range.0,
-                config.vehicle.size_range.1
-            );
-            let max_speed = map_range(
+        // The non-default attributes of the fish that are to be specified before-hand
+        for _ in 1..config.fish.quantity {
+            let size = rng.gen_range(config.fish.size_range.0, config.fish.size_range.1);
+            let max_speed = inverse_map_range(
                 size,
-                config.vehicle.size_range,
-                config.vehicle.max_speed_range
+                config.fish.size_range,
+                config.fish.max_speed_range,
             );
-            let max_steering_force = map_range(
+            let max_steering_force = inverse_map_range(
                 size,
-                config.vehicle.size_range,
-                config.vehicle.max_steering_force_range
+                config.fish.size_range,
+                config.fish.max_steering_force_range,
             );
             let angle = rng.gen_range(0.0, 2.0 * std::f32::consts::PI);
             let pos = Point2::new(
                 rng.gen_range(0.0, config.window_size.0),
                 rng.gen_range(0.0, config.window_size.1),
             );
-            let dna = [
-                rng.gen_range(-5.0, 5.0),
-                rng.gen_range(-5.0, 5.0),
-            ];
+            let dna = [rng.gen_range(-5.0, 5.0), rng.gen_range(-5.0, 5.0)];
 
-            vehicles.push(Vehicle::new(
+            fishes.push(Fish::new(
                 size,
                 max_speed,
                 max_steering_force,
                 pos,
                 angle,
-                dna
+                dna,
             ));
         }
 
@@ -114,27 +96,24 @@ impl State {
         let mut poison = Vec::new();
         for _ in 1..config.poison.quantity {
             poison.push(Food {
-                size: rng.gen_range(
-                          config.poison.size_range.0,
-                          config.poison.size_range.1
-                      ),
+                size: rng.gen_range(config.poison.size_range.0, config.poison.size_range.1),
                 pos: Point2::new(
                     rng.gen_range(0.0, config.window_size.0),
-                    rng.gen_range(0.0, config.window_size.1)
+                    rng.gen_range(0.0, config.window_size.1),
                 ),
-                color: [1.0, 0.0, 0.0, 0.8]
+                color: [1.0, 0.0, 0.0, 0.8],
             });
         }
 
-        let mut vehicle_image = graphics::Image::new(ctx, "/frames.png").unwrap();
-        vehicle_image.set_filter(graphics::FilterMode::Nearest);
+        let mut fish_image = graphics::Image::new(ctx, "/frames.png").unwrap();
+        fish_image.set_filter(graphics::FilterMode::Nearest);
 
         Ok(State {
             config,
-            vehicles,
+            fishes,
             food,
             poison,
-            vehicle_image,
+            fish_image,
         })
     }
 }
@@ -143,9 +122,9 @@ impl event::EventHandler for State {
     /// Updates all elements of the current application state
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         while timer::check_update_time(ctx, self.config.desired_fps) {
-            for vehicle in self.vehicles.iter_mut() {
-                vehicle.behaviors(&mut self.food, &mut self.poison);
-                vehicle.update();
+            for fish in self.fishes.iter_mut() {
+                fish.behaviors(&mut self.food, &mut self.poison);
+                fish.update();
             }
         }
 
@@ -168,11 +147,11 @@ impl event::EventHandler for State {
             }
         }
 
-        for vehicle in self.vehicles.iter_mut() {
-            if let Err(error) = vehicle.draw(
+        for fish in self.fishes.iter_mut() {
+            if let Err(error) = fish.draw(
                 ctx,
-                &self.vehicle_image,
-                self.config.vehicle.max_speed_range.1
+                &self.fish_image,
+                self.config.fish.frames_per_animation_frame,
             ) {
                 return Err(error);
             }
@@ -221,8 +200,12 @@ pub fn main() -> GameResult {
     event::run(ctx, event_loop, state)
 }
 
-fn map_range(value: f32, range1: (f32, f32), range2: (f32, f32)) -> f32 {
-    range2.0
-        + (range2.1 - range2.0)
-        * ((value - range1.0) / (range1.1 - range1.0))
+fn inverse_map_range(value: f32, range1: (f32, f32), range2: (f32, f32)) -> f32 {
+    range2.1 - (range2.1 - range2.0) * ((value - range1.0) / (range1.1 - range1.0))
+}
+
+#[test]
+fn test_inverse_map_range() {
+    let value = inverse_map_range(1.0, (0.0, 3.0), (3.0, 12.0));
+    assert_eq!(value, 9.0);
 }
