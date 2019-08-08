@@ -5,8 +5,8 @@ Copyright (c) 2019 Austin Baugh
 > `Evolution` will be a 2D simulation based on Daniel Shiffman's coding challenge of implementing [Evolutionary Steering Behaviors](https://youtu.be/flxOkx0yLrY).
 
 - This simulation is written in the Rust programming language, and uses the [ggez](https://github.com/ggez/ggez) crate.
-- This simulation consists of vehicles who improve their "foraging" behaviors through the use of a genetic algorithm.
-    - By "foraging" it is meant that vehicles will be inclined to consume food and avoid poison.
+- This simulation consists of fish who improve their "foraging" behaviors through the use of a genetic algorithm.
+    - By "foraging" it is meant that fish will be inclined to consume food and avoid poison.
 
 ## Build and Run
 - Build: `cargo build`
@@ -15,12 +15,12 @@ Copyright (c) 2019 Austin Baugh
 ## [Documentation](https://web.pdx.edu/~abaugh/doc/evolution)
 
 ## Features
-- [x] Add seek behavior to vehicles
-- [ ] Add a declining health attribute to vehicles
-- [ ] Add food entities
-    - [ ] Have vehicles seek food
-- [ ] Add poison entities
-    - [ ] Have vehicles avoid poison
+- [x] Add seek behavior to fish
+- [x] Add a declining health attribute to fish
+- [x] Add food entities
+    - [x] Have fish seek food
+- [x] Add poison entities
+    - [ ] Have fish avoid poison
 - [ ] Incorperate genetic algorithm
 - [ ] Implement predators
     - [ ] Consider removing poison
