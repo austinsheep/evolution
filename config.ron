@@ -1,25 +1,35 @@
-Config( // A template configuration file for `evolution`
+// A preset configuration file for `evolution`
+
+Config(
+    // Whether or not the window is fullscreen
     fullscreen: false,
+    // If the window is not fullscreen, the size of the window will be specified based on the
+    // provided (width, height)
     window_size: (640.0, 480.0),
+    // The FPS that the simulation would preferably run at
     desired_fps: 60,
+    // Whether or not the current FPS should be displayed in the simulation window
     show_fps: true,
 
+    // The configuration pertaining to the fishes
     fish: FishConfig(
         quantity: 20,
-        size_range: (1.0, 2.0),
+        scale_range: (1.0, 2.0),
         max_speed_range: (1.0, 2.0),
         max_steering_force_range: (0.01, 0.1),
         total_food_chain_links: 3,  // Excludes food
         frames_per_animation_frame: 3.0,
     ),
 
+    // The configuration pertaining to the food
     food: FoodConfig(
         quantity: 50,
-        size_range: (5.0, 20.0),
+        radius_range: (5.0, 20.0),
     ),
 
+    // The configuration pertaining to the poison
     poison: FoodConfig(
         quantity: 50,
-        size_range: (5.0, 20.0),
+        radius_range: (5.0, 20.0),
     ),
 )
