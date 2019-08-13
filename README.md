@@ -5,14 +5,22 @@ Copyright (c) 2019 Austin Baugh
 > `Evolution` is a 2D simulation based on Daniel Shiffman's coding challenge of implementing [Evolutionary Steering Behaviors](https://youtu.be/flxOkx0yLrY).
 
 - This simulation is written in the Rust programming language, and uses the [ggez](https://github.com/ggez/ggez) crate.
-- This simulation consists of fish who improve their "foraging" and "avoiding" behaviors through the use of a genetic algorithm.
-    - By "foraging" it is meant that fish will be inclined to consume food.
-    - By "avoiding" it is meant that fish will be inclined to avoid predators.
+- This simulation consists of fish who improve their survival behaviors through the use of a genetic algorithm.
+    - The fish should be inclined to be attracted to food/prey and repelled by predators
+    - The fish should also develop perception radii for prey and predators respectively that works mostly optimally.
+- The fish reproduce asexually by cloning themselves, with the possibility of their gene's mutating (mutation rate).
+- The speed of the fish is inversely proportional to their size.
+    - Therefore larger fish will be slower, while smaller fish will be faster.
+- Since there are predators in this simulation, their are different groups of fish, depending on their link in the food chain.
+    - Different fish groups have different ranges of sizes/speeds.
+    - E.g. The highest-levelled group in the food chain (the group of predators that can't don't have predators) will have the largest size options and smallest speed options.
+    - E.g. The lowest-levelled group in the food chain (the group of fish that isn't predators) will have the smallest size options and largest speed options.
 
 ## Build and Run
 This program requires `cargo`, which can be installed [here](https://rustup.rs).
-- Build: `cargo build`
-- Run: `cargo run`
+I advise using the `--release` argument when building or running to achieve a higher FPS.
+- Build: `cargo build --release`
+- Run: `cargo run --release`
 
 ## [Documentation](https://web.pdx.edu/~abaugh/doc/evolution)
 

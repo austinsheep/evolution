@@ -1,12 +1,11 @@
 //! A module for creating animated fish in a `ggez` window.
-
 use ggez::{
     graphics,
     graphics::{DrawParam, Rect, Color},
     nalgebra::{distance, Point2, Vector2},
     Context, GameResult,
 };
-use rand::Rng;
+use rand::{Rng, rngs::ThreadRng};
 use serde::Deserialize;
 
 use super::{food::Food, inverse_map_range, Entity};
@@ -84,7 +83,7 @@ impl Fish {
         fish_config: &FishConfig,
         group_index: &usize,
         window_size: &(f32, f32),
-        rng: &mut rand::rngs::ThreadRng,
+        rng: &mut ThreadRng,
     ) -> Self {
         // Scale is a random field between the specified range in `FishConfig`
         let scale_range = (fish_config.scale_range.1 - fish_config.scale_range.0)
@@ -144,13 +143,16 @@ impl Fish {
         }
     }
 
-    pub fn clone(&self, rng: &mut rand::rngs::ThreadRng, mutation_rate: f32) -> Self {
+    /// Creates a clone of a fish, with possible mutation(s) to the DNA
+    pub fn clone(&self, rng: &mut ThreadRng, mutation_rate: f32) -> Self {
+        // Possibly apply a mutation to genes in the cloned DNA, based on the `FishConfig.mutation_rate`
         let mut dna = self.dna.clone();
         for gene in dna.iter_mut() {
             if rng.gen_range(0.0, 1.0) < mutation_rate {
                 *gene += rng.gen_range(-0.1, 0.1);
             }
         }
+
         Self {
             animation_index: 0,
             frame_index: 0,
