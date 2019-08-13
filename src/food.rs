@@ -3,6 +3,8 @@
 use ggez::{graphics, nalgebra::Point2, Context, GameResult};
 use serde::Deserialize;
 
+use super::Entity;
+
 /// The configuration structure specifically for food that is read and deserialized from
 /// `config.ron`
 #[derive(Debug, Deserialize)]
@@ -24,6 +26,21 @@ pub struct Food {
 }
 
 impl Food {
+    pub fn new(pos: Point2<f32>) -> Self {
+        Self {
+            radius: 5.0,
+            // The position is a random location in the window
+            pos,
+            // The color is a slightly transparent green
+            color: /*[
+                rng.gen_range(0.0, 1.0),
+                rng.gen_range(0.0, 1.0),
+                rng.gen_range(0.0, 1.0),
+                0.8
+            ]*/[0.0, 1.0, 0.0, 0.8]
+        }
+    }
+
     /// Draws the circle representing the piece of food in the `ggez` window
     pub fn draw(&self, ctx: &mut Context) -> GameResult {
         let circle = graphics::Mesh::new_circle(
@@ -37,5 +54,16 @@ impl Food {
 
         graphics::draw(ctx, &circle, (self.pos,))?;
         Ok(())
+    }
+}
+
+impl Entity for Food {
+    /// Returns a reference to the piece of food's position
+    fn pos(&self) -> Point2<f32> {
+        self.pos
+    }
+    /// Returns the radius of the piece of food
+    fn radius(&self) -> f32 {
+        self.radius
     }
 }

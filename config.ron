@@ -5,31 +5,40 @@ Config(
     fullscreen: false,
     // If the window is not fullscreen, the size of the window will be specified based on the
     // provided (width, height)
-    window_size: (640.0, 480.0),
-    // The FPS that the simulation would preferably run at
-    desired_fps: 60,
+    window_size: (1280.0, 640.0),
     // Whether or not the current FPS should be displayed in the simulation window
     show_fps: true,
+    // The thickness of the padding that bounds the fish within the window
+    // The food will also generate within this boundary
+    boundary_padding: 20.0,
 
     // The configuration pertaining to the fishes
     fish: FishConfig(
-        quantity: 20,
+        // The number of fish in the simulation
+        quantity: 36,
+        // The constant radius around the fish where prey can be consumed
+        eating_radius: 5.0,
+        // The frequency at which the fish's dna will mutate
+        mutation_rate: 0.01,
+        // The range of scales of the fish.
+        // E.g. A scale of 2 would result in a fish twice as large as the original image.
         scale_range: (1.0, 2.0),
-        max_speed_range: (1.0, 2.0),
+        // The range of maximum speeds for the fish
+        max_speed_range: (2.0, 5.0),
+        // The range of maximum turning forces for the fish
         max_steering_force_range: (0.01, 0.1),
+        // The number of links in the food chain, excluding food
         total_food_chain_links: 3,  // Excludes food
-        frames_per_animation_frame: 3.0,
+        // The number of frames in the simulation that will go by before going to the next
+        // animation frame at the fish's maximum speed.
+        frames_per_animation_frame: 2.0,
     ),
 
     // The configuration pertaining to the food
     food: FoodConfig(
-        quantity: 50,
-        radius_range: (5.0, 20.0),
-    ),
-
-    // The configuration pertaining to the poison
-    poison: FoodConfig(
-        quantity: 50,
+        /// The amount of food in the simulation
+        quantity: 200,
+        /// The range of radii of the food.
         radius_range: (5.0, 20.0),
     ),
 )

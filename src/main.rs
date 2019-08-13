@@ -4,14 +4,16 @@
 //! The `Fish` will then go on to seek and eat `Food` and `Poison`.
 
 use ggez::{conf, event, graphics, nalgebra::Point2, timer, Context, ContextBuilder, GameResult};
-use rand::Rng;
+use rand::{rngs::ThreadRng, Rng};
 use ron::de::from_reader;
 use serde::Deserialize;
 use std::{fs::File, path::PathBuf};
 
-use evolution::fish::{Fish, FishConfig};
-use evolution::food::{Food, FoodConfig};
-use evolution::inverse_map_range;
+use evolution::{
+    fish::{Fish, FishConfig},
+    food::{Food, FoodConfig},
+    Entity,
+};
 
 /// The configuration structure that is read and deserialized from `config.ron`
 #[derive(Debug, Deserialize)]
@@ -21,28 +23,26 @@ struct Config {
     /// If the window is not fullscreen, the size of the window will be specified based on the
     /// provided (width, height)
     window_size: (f32, f32),
-    /// The FPS that the simulation would preferably run at
-    desired_fps: u32,
     /// Whether or not the current FPS should be displayed in the simulation window
     show_fps: bool,
+    /// The thickness of the padding boundary for the fish around the window in pixels
+    boundary_padding: f32,
     /// The configuration pertaining to the fish
     fish: FishConfig,
     /// The configuration pertaining to the food
     food: FoodConfig,
-    /// The configuration pertaining to the poison
-    poison: FoodConfig,
 }
 
 /// The application state that keeps track of all configurations and entities of the simulation
 struct State {
     /// The configuration information set from `config.ron` when the program was executed
     config: Config,
-    /// A collection of fish
-    fish: Vec<Fish>,
+    /// Random number generator
+    rng: ThreadRng,
     /// A collection of food
     food: Vec<Food>,
-    /// A collection of poison
-    poison: Vec<Food>,
+    /// A collection of fish groups who are organized based on their level in the food chain
+    fish_groups: Vec<Vec<Fish>>,
     /// The spritesheet of the fish used for its animation
     fish_image: graphics::Image,
 }
@@ -54,83 +54,26 @@ impl State {
         // simulation
         let mut rng = rand::thread_rng();
 
-        let mut fish = Vec::new();
-        // Spawn the fish
-        for _ in 1..config.fish.quantity {
-            // Setting the non-default fields of the fish
-            // Scale is a random field between the specified range in `FishConfig`
-            let scale = rng.gen_range(config.fish.scale_range.0, config.fish.scale_range.1);
-            // Max speed and max steering force are values that are inversely
-            // proportional to the scale value of the fish
-            let max_speed =
-                inverse_map_range(scale, config.fish.scale_range, config.fish.max_speed_range);
-            let max_steering_force = inverse_map_range(
-                scale,
-                config.fish.scale_range,
-                config.fish.max_steering_force_range,
-            );
-            // The angle is just a random radian around the unit circle
-            let angle = rng.gen_range(0.0, 2.0 * std::f32::consts::PI);
-            // The position is a random location in the window
-            // TODO: In fullscreen mode, the window size may change on program
-            // execution resulting in the fish, food, and poison spawning in a different area than the
-            // window dimensions.
-            let pos = Point2::new(
-                rng.gen_range(0.0, config.window_size.0),
-                rng.gen_range(0.0, config.window_size.1),
-            );
-            // The DNA currently holds random values for the weights against steering
-            // towards food and poison respectively.
-            let dna = [rng.gen_range(-5.0, 5.0), rng.gen_range(-5.0, 5.0)];
-
-            fish.push(Fish::new(
-                scale,
-                max_speed,
-                max_steering_force,
-                pos,
-                angle,
-                dna,
-            ));
-        }
-
         let mut food = Vec::new();
         // Spawn the food
         for _ in 1..config.food.quantity {
-            food.push(Food {
-                // Size is a random field between the specified range in `FoodConfig`
-                radius: rng.gen_range(
-                          config.food.radius_range.0,
-                          config.food.radius_range.1
-                      ),
-                // The position is a random location in the window
-                pos: Point2::new(
-                    rng.gen_range(0.0, config.window_size.0),
-                    rng.gen_range(0.0, config.window_size.1)
-                ),
-                // The color is a slightly transparent green
-                color: /*[
-                    rng.gen_range(0.0, 1.0),
-                    rng.gen_range(0.0, 1.0),
-                    rng.gen_range(0.0, 1.0),
-                    0.8
-                ]*/[0.0, 1.0, 0.0, 0.8]
-            });
+            Self::add_food(&mut food, &config, &mut rng);
         }
 
-        let mut poison = Vec::new();
-        // Spawn the poison
-        for _ in 1..config.poison.quantity {
-            poison.push(Food {
-                // Size is a random field between the specified range in `PoisonConfig`
-                radius: rng.gen_range(config.poison.radius_range.0, config.poison.radius_range.1),
-                // The position is a random location in the window
-                pos: Point2::new(
-                    rng.gen_range(0.0, config.window_size.0),
-                    rng.gen_range(0.0, config.window_size.1),
-                ),
-                // The color is a slightly transparent red
-                color: [1.0, 0.0, 0.0, 0.8],
-            });
+        let mut fish_groups = Vec::new();
+
+        let fish_per_group = config.fish.quantity / config.fish.total_food_chain_links;
+        // Spawn the fish
+        for group_index in 0..config.fish.total_food_chain_links {
+            fish_groups.push(Vec::new());
+            for _ in 0..fish_per_group {
+                fish_groups[group_index].push(Fish::new(
+                    &config.fish,
+                    &group_index,
+                    &config.window_size,
+                    &mut rng,
+                ));
+            }
         }
 
         // Retrieve the spritesheet for the fish animation
@@ -140,26 +83,77 @@ impl State {
 
         Ok(State {
             config,
-            fish,
+            rng,
+            fish_groups,
             food,
-            poison,
             fish_image,
         })
+    }
+
+    /// Adds a peice of food to the collection
+    fn add_food(food: &mut Vec<Food>, config: &Config, rng: &mut ThreadRng) {
+        food.push(Food::new(Point2::new(
+            rng.gen_range(
+                config.boundary_padding,
+                config.window_size.0 - config.boundary_padding,
+            ),
+            rng.gen_range(
+                config.boundary_padding,
+                config.window_size.1 - config.boundary_padding,
+            ),
+        )));
     }
 }
 
 impl event::EventHandler for State {
     /// Updates all elements of the current application state
-    fn update(&mut self, ctx: &mut Context) -> GameResult {
-        // We should only update the application state when we're within our preferred
-        // FPS
-        while timer::check_update_time(ctx, self.config.desired_fps) {
-            for fish in self.fish.iter_mut() {
-                // Update the behavior state of all fish
-                fish.behaviors(&mut self.food, &mut self.poison);
-                // Update the physical state of all fish
-                fish.update();
+    fn update(&mut self, _ctx: &mut Context) -> GameResult {
+        if self.rng.gen_ratio(1, 10) {
+            Self::add_food(&mut self.food, &self.config, &mut self.rng);
+        }
+
+        for group_index in 0..self.config.fish.total_food_chain_links {
+            let (prey, other_fish_groups) = self.fish_groups.split_at_mut(group_index);
+
+            let predator_positions = if group_index == self.config.fish.total_food_chain_links - 1 {
+                None
+            } else {
+                Some(
+                    other_fish_groups[1]
+                        .iter()
+                        .map(|predator| predator.pos())
+                        .collect(),
+                )
+            };
+
+            // We should remove dead fish from our collection of fish
+            other_fish_groups[0].retain(|fish| fish.is_alive());
+
+            let mut new_fish = None;
+
+            for fish in other_fish_groups[0].iter_mut() {
+                // Only update living fish
+                if fish.is_alive() {
+                    if new_fish.is_none() && self.rng.gen_ratio(1, 1000) {
+                        new_fish = Some(fish.clone(&mut self.rng, self.config.fish.mutation_rate));
+                    }
+                    // Update the behavior state of all fish
+                    fish.behave(
+                        &mut self.food,
+                        prey,
+                        &predator_positions,
+                        self.config.fish.eating_radius,
+                    );
+                    // Bound the fish to a padding in the window
+                    fish.bound(&self.config.window_size, self.config.boundary_padding);
+                    // Update the physical state of all fish
+                    fish.update();
+                }
             }
+
+            if let Some(new_fish) = new_fish {
+                other_fish_groups[0].push(new_fish)
+            };
         }
 
         Ok(())
@@ -170,25 +164,21 @@ impl event::EventHandler for State {
         // Sets the background to a solid blue-ish color
         graphics::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
 
-        for poison in self.poison.iter() {
-            if let Err(error) = poison.draw(ctx) {
-                return Err(error);
-            }
-        }
-
         for food in self.food.iter() {
             if let Err(error) = food.draw(ctx) {
                 return Err(error);
             }
         }
 
-        for fish in self.fish.iter_mut() {
-            if let Err(error) = fish.draw(
-                ctx,
-                &self.fish_image,
-                self.config.fish.frames_per_animation_frame,
-            ) {
-                return Err(error);
+        for fish_group in self.fish_groups.iter_mut() {
+            for fish in fish_group.iter_mut() {
+                if let Err(error) = fish.draw(
+                    ctx,
+                    &self.fish_image,
+                    self.config.fish.frames_per_animation_frame,
+                ) {
+                    return Err(error);
+                }
             }
         }
 
