@@ -11,7 +11,7 @@ license       = "MIT"
 
 [dependencies]
 rand = "0.7"
-cgmath = "0.17"
+cgmath = "0.18"
 ggez = "0.5.0-rc.2"
 ron = "0.5.1"
 serde = { version = "1", features = ["serde_derive"] }
