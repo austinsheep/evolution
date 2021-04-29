@@ -1,0 +1,14 @@
+version: 2
+updates:
+- package-ecosystem: cargo
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "20:36"
+    timezone: America/Los_Angeles
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: serde
+    versions:
+    - 1.0.123
+    - 1.0.124
